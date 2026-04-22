@@ -1,3 +1,25 @@
+const logos = []
+const closers = []
+function elementsOverlap(el1, el2) {
+   function isTouching(elem1, elem2) {
+    // SAFETY GUARD: If these are the exact same HTML element, ignore them.
+    if (elem1 === elem2) return false;
+
+    const r1 = elem1.getBoundingClientRect();
+    const r2 = elem2.getBoundingClientRect();
+
+    return !(
+        r1.top > r2.bottom ||
+        r1.right < r2.left ||
+        r1.bottom < r2.top ||
+        r1.left > r2.right
+    );
+
+}
+return isTouching(el1, el2)
+}
+
+function addLogo() {
 // helper functions
 function randint(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -101,7 +123,7 @@ if (params.has("randomizeColor") && params.get("randomizeColor") in ["false", "0
     randomizeColor = false;
 }
 
-const speed = params.get("speed") || 1.0;
+let speed = document.querySelector("#speed").value;
 
 // variables
 let x = randint(1, window.innerWidth - dimensions[0] - 1);
@@ -110,20 +132,50 @@ let y = randint(1, window.innerHeight - dimensions[1] - 1);
 let direction = [1, 1];
 
 // set the ID and the fill color to the logo
-logo.id = "logo";
+logo.classList.add("logo");
 logo.style.fill = initialColor;
 
 // add the logo to the page
 document.body.append(logo);
 
+logos.push(logo) // add the logo to the array of logos
+
 // move the logo to the randomized initial position
 move(logo, x, y);
 
 // main loop
-setInterval(() => {
+var interavl = () => {
+    speed = document.querySelector("#speed").value
     // change the coords based on the direction & speed
     x += speed * direction[0];
     y += speed * direction[1];
+    
+    // checkTouchingAnyOtherLogos()
+
+
+    
+    logos.forEach(secondLogo => {
+    if (logo === secondLogo) return;
+
+    if (elementsOverlap(logo, secondLogo)) {
+        // Get the coordinates of the other logo
+        // Note: You'd ideally store x/y in an object for each logo, 
+        // but we can grab them from the rect for now
+        const r1 = logo.getBoundingClientRect();
+        const r2 = secondLogo.getBoundingClientRect();
+
+        // 1. COLLISION ON X-AXIS (Horizontal)
+        // If logo is on the left and moving right, OR on the right and moving left
+        if ((r1.left < r2.left && direction[0] > 0) || (r1.left > r2.left && direction[0] < 0)) {
+            changeDirection(0, -direction[0]); // Reverse X
+        }
+
+        // 2. COLLISION ON Y-AXIS (Vertical)
+        if ((r1.top < r2.top && direction[1] > 0) || (r1.top > r2.top && direction[1] < 0)) {
+            changeDirection(1, -direction[1]); // Reverse Y
+        }
+    }
+});
 
     // check if logo is bouncing on the left/right side
     if (x <= 1) {
@@ -141,4 +193,20 @@ setInterval(() => {
 
     // move the logo to the current X and Y coords
     move(logo, x, y);
-});
+};
+setInterval(interavl)
+closers.push(() => clearInterval(interavl))
+}
+
+addLogo()
+addLogo()
+
+document.getElementById("settings").onclick = addLogo
+document.getElementById("clear").onclick = function() {
+    closers.forEach(c => {
+        c()
+    })
+    logos.forEach(l => {
+        l.remove()
+    })
+}
